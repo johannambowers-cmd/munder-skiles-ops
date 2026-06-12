@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Munder Skiles — Operations Tool</title>
+<style>
+  :root {
+    --black: #111110;
+    --white: #ffffff;
+    --surface: #f7f6f3;
+    --surface2: #efede8;
+    --border: #dddbd4;
+    --border2: #c8c5bc;
+    --text: #111110;
+    --text2: #6b6860;
+    --text3: #9b9890;
+    --success-bg: #eaf3de;
+    --success-border: #97c459;
+    --success-text: #3b6d11;
+    --warn-bg: #faeeda;
+    --warn-border: #ef9f27;
+    --warn-text: #854f0b;
+    --danger-bg: #fcebeb;
+    --danger-border: #f09595;
+    --danger-text: #a32d2d;
+    --info-bg: #e6f1fb;
+    --info-border: #85b7eb;
+    --info-text: #185fa5;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Inter", system-ui, -apple-system, sans-serif; background: var(--surface); color: var(--text); font-size: 14px; line-height: 1.6; min-height: 100vh; }
+
+  header { background: var(--black); color: var(--white); padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 52px; }
+  header .brand { display: flex; align-items: center; gap: 12px; }
+  header .brand-name { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--white); }
+  header .brand-sub { font-size: 12px; color: rgba(255,255,255,0.45); }
+  header .tag { font-size: 11px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); padding: 3px 10px; border-radius: 20px; letter-spacing: 0.04em; }
+
+  .layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 52px); }
+
+  nav { background: var(--white); border-right: 1px solid var(--border); padding: 1.5rem 0; }
+  .nav-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); padding: 0 1.25rem; margin-bottom: 6px; margin-top: 1.25rem; }
+  .nav-label:first-child { margin-top: 0; }
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 7px 1.25rem; font-size: 13px; color: var(--text2); cursor: pointer; border-left: 2px solid transparent; transition: all 0.1s; user-select: none; }
+  .nav-item:hover { background: var(--surface); color: var(--text); }
+  .nav-item.active { background: var(--surface); color: var(--text); border-left-color: var(--black); font-weight: 500; }
+  .nav-item svg { width: 15px; height: 15px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+  main { padding: 2rem 2.5rem; max-width: 780px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  h1 { font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .page-sub { font-size: 14px; color: var(--text2); margin-bottom: 1.75rem; }
+  h2 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+
+  .drop-zone { border: 1.5px dashed var(--border2); border-radius: var(--radius-lg); padding: 2.5rem 1rem; text-align: center; cursor: pointer; background: var(--surface); transition: all 0.15s; }
+  .drop-zone:hover, .drop-zone.over { background: var(--info-bg); border-color: var(--info-border); }
+  .drop-zone svg { width: 28px; height: 28px; stroke: var(--text3); margin: 0 auto 10px; display: block; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .drop-zone p { font-size: 14px; color: var(--text2); }
+  .drop-zone span { font-size: 12px; color: var(--text3); }
+  input[type="file"] { display: none; }
+
+  .step-bar { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: var(--radius); font-size: 13px; color: var(--text2); margin-top: 10px; background: var(--surface); }
+  .step-bar.done { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
+  .step-bar.err  { background: var(--danger-bg);  color: var(--danger-text);  border: 1px solid var(--danger-border); }
+
+  .spin { width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--text2); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 1rem 0; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text2); }
+  .field input, .field select, .field textarea {
+    font-family: inherit; font-size: 13px; color: var(--text);
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 7px 10px; width: 100%;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none; border-color: var(--black);
+  }
+  .field textarea { resize: vertical; min-height: 56px; }
+
+  .flag { display: flex; align-items: flex-start; gap: 9px; padding: 10px 12px; border-radius: var(--radius); font-size: 13px; margin: 10px 0; }
+  .flag.warn { background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-text); }
+  .flag.info { background: var(--info-bg); border: 1px solid var(--info-border); color: var(--info-text); }
+  .flag svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+  .dates-mini { background: var(--surface); border-radius: var(--radius); padding: 10px 12px; margin: 10px 0; }
+  .dates-mini h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); margin-bottom: 8px; }
+  .date-row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; border-bottom: 1px solid var(--border); }
+  .date-row:last-child { border: none; }
+  .date-row .label { color: var(--text2); }
+  .date-row .val { font-weight: 500; }
+
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 1rem; }
+  .btn-row.triple { grid-template-columns: 1fr 1fr; }
+  .btn { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 14px; font-size: 13px; font-weight: 500; font-family: inherit; border-radius: var(--radius); cursor: pointer; border: 1px solid var(--border2); background: var(--white); color: var(--text); transition: all 0.12s; }
+  .btn:hover { background: var(--surface); }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-dark { background: var(--black); color: var(--white); border-color: var(--black); }
+  .btn-dark:hover { opacity: 0.85; background: var(--black); }
+  .btn-full { grid-column: 1 / -1; }
+  .btn svg { width: 15px; height: 15px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+  .reset-link { background: none; border: none; font-size: 12px; color: var(--text3); cursor: pointer; font-family: inherit; text-decoration: underline; display: block; text-align: center; margin-top: 10px; }
+  .reset-link:hover { color: var(--text2); }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+  .notion-section { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; margin-top: 10px; }
+  .notion-section h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); margin-bottom: 8px; }
+  .notion-row { display: flex; gap: 8px; }
+  .notion-row input { flex: 1; }
+
+  .success-banner { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--success-bg); border: 1px solid var(--success-border); border-radius: var(--radius); font-size: 13px; color: var(--success-text); margin-top: 10px; }
+  .success-banner svg { width: 15px; height: 15px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .success-banner a { color: var(--info-text); text-underline-offset: 2px; }
+
+  .badge { display: inline-block; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 8px; border-radius: 20px; }
+  .badge-custom { background: var(--warn-bg); color: var(--warn-text); border: 1px solid var(--warn-border); }
+  .badge-std { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
+
+  .sop-step { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .sop-step:last-child { border: none; }
+  .sop-num { width: 22px; height: 22px; border-radius: 50%; background: var(--black); color: var(--white); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .sop-body { flex: 1; }
+  .sop-body strong { font-size: 13px; font-weight: 600; display: block; margin-bottom: 2px; }
+  .sop-body p { font-size: 13px; color: var(--text2); }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 640px) {
+    .layout { grid-template-columns: 1fr; }
+    nav { display: none; }
+    main { padding: 1.25rem; }
+    .fields { grid-template-columns: 1fr; }
+    .btn-row { grid-template-columns: 1fr; }
+    .btn-full { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div>
+      <div class="brand-name">Munder Skiles</div>
+      <div class="brand-sub">Finishing Operations</div>
+    </div>
+  </div>
+  <div class="tag">Internal Tool</div>
+</header>
+
+<div class="layout">
+  <nav>
+    <div class="nav-label">Workflow</div>
+    <div class="nav-item active" data-page="intake">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      PO Intake
+    </div>
+    <div class="nav-item" data-page="labels">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      Label Generator
+    </div>
+    <div class="nav-label">Reference</div>
+    <div class="nav-item" data-page="sop">
+      <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      SOPs
+    </div>
+    <div class="nav-item" data-page="dates">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Date Calculator
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- PO INTAKE PAGE -->
+    <div class="page active" id="page-intake">
+      <h1>PO Intake</h1>
+      <p class="page-sub">Drop a Munder Skiles PO PDF — AI extracts the details, generates labels, and saves to Notion.</p>
+
+      <div class="card">
+        <h2>1. Upload PO</h2>
+        <div class="drop-zone" id="drop">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <p>Drop PO PDF here or click to browse</p>
+          <span>PDF files only</span>
+          <input type="file" id="file-in" accept=".pdf" />
+        </div>
+        <div id="step-read"    class="step-bar hidden"><div class="spin"></div><span>Reading PDF...</span></div>
+        <div id="step-extract" class="step-bar hidden"><div class="spin"></div><span>Extracting order details with AI...</span></div>
+        <div id="step-done"    class="step-bar done hidden">
+          <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:var(--success-text);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="20,6 9,17 4,12"/></svg>
+          <span>Details extracted — review and confirm below.</span>
+        </div>
+        <div id="step-err" class="step-bar err hidden">
+          <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="err-msg">Could not read PDF. Fill in manually.</span>
+        </div>
+      </div>
+
+      <div id="form-area" class="hidden">
+        <div class="card">
+          <h2>2. Review extracted details</h2>
+          <div id="custom-flag" class="flag warn hidden">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>Custom color detected — trigger a sample work order in ERP before scheduling production.</span>
+          </div>
+          <div class="fields">
+            <div class="field"><label>Project name</label><input id="f-project" type="text" placeholder="e.g. Westfield Collection" /></div>
+            <div class="field"><label>PO number</label><input id="f-po" type="text" placeholder="e.g. 1234CP" /></div>
+            <div class="field"><label>Color selected</label><input id="f-color" type="text" placeholder="e.g. Warm Walnut 4820" /></div>
+            <div class="field"><label>Finish product / brand</label><input id="f-finish" type="text" placeholder="e.g. Enduro 2K Polyurethane" /></div>
+            <div class="field"><label>Quantity</label><input id="f-qty" type="number" min="1" placeholder="0" /></div>
+            <div class="field"><label>Sheen</label>
+              <select id="f-sheen">
+                <option value="">— select —</option>
+                <option>Flat</option><option>Matte</option><option>Satin</option>
+                <option>Semi-Gloss</option><option>Gloss</option>
+              </select>
+            </div>
+            <div class="field full"><label>Product description</label><textarea id="f-desc" placeholder="Item names, dimensions, quantities per piece..."></textarea></div>
+            <div class="field"><label>Container date</label><input id="f-container" type="date" /></div>
+            <div class="field"><label>Date filled (today)</label><input id="f-filled" type="date" /></div>
+            <div class="field full"><label>Notes / special requests</label><textarea id="f-notes" placeholder="Custom requests, flagged items, field notes..."></textarea></div>
+          </div>
+
+          <div id="dates-card" class="dates-mini hidden">
+            <h3>Calculated milestones</h3>
+            <div class="date-row"><span class="label">Container arrives in US</span><span class="val" id="d-cont">—</span></div>
+            <div class="date-row"><span class="label">Est. arrival at facility</span><span class="val" id="d-arr">—</span></div>
+            <div class="date-row"><span class="label">Est. completion / use by</span><span class="val" id="d-comp">—</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>3. Save to Notion</h2>
+          <div class="flag info">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>Saves a new record to your Service Orders database with status set to <strong>Received</strong>.</span>
+          </div>
+          <div class="btn-row" style="margin-top:0.75rem;">
+            <button class="btn btn-dark btn-full" id="btn-notion" disabled>
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M8 8h8M8 16h5"/></svg>
+              Save to Notion
+            </button>
+          </div>
+          <div id="notion-success" class="success-banner hidden">
+            <svg viewBox="0 0 24 24"><polyline points="20,6 9,17 4,12"/></svg>
+            <span>Saved to Notion — <a id="notion-link" href="#" target="_blank">open order</a></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>4. Generate labels</h2>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:1rem;">Print-ready 4"×2" Brother label files built from the extracted PO data.</p>
+          <div class="btn-row triple">
+            <button class="btn" id="btn-cat" disabled>
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Catalyst label
+            </button>
+            <button class="btn" id="btn-pb" disabled>
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Paint Base label
+            </button>
+            <button class="btn btn-dark btn-full" id="btn-both" disabled>
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download both labels
+            </button>
+          </div>
+          <div id="label-success" class="success-banner hidden">
+            <svg viewBox="0 0 24 24"><polyline points="20,6 9,17 4,12"/></svg>
+            <span id="label-msg">Labels downloaded.</span>
+          </div>
+        </div>
+
+        <button class="reset-link" id="btn-reset">Start over with a new PO</button>
+      </div>
+    </div>
+
+    <!-- LABEL GENERATOR PAGE -->
+    <div class="page" id="page-labels">
+      <h1>Label Generator</h1>
+      <p class="page-sub">Generate labels manually without uploading a PO. Useful for reprints or corrections.</p>
+      <div class="card">
+        <div class="fields">
+          <div class="field"><label>Project name</label><input id="l-project" type="text" placeholder="e.g. Westfield Collection" /></div>
+          <div class="field"><label>Color</label><input id="l-color" type="text" placeholder="e.g. Warm Walnut 4820" /></div>
+          <div class="field"><label>Date filled</label><input id="l-filled" type="date" /></div>
+          <div class="field"><label>Use by date</label><input id="l-useby" type="date" /></div>
+        </div>
+        <div class="btn-row triple">
+          <button class="btn" id="l-btn-cat">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Catalyst label
+          </button>
+          <button class="btn" id="l-btn-pb">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Paint Base label
+          </button>
+          <button class="btn btn-dark btn-full" id="l-btn-both">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download both labels
+          </button>
+        </div>
+        <div id="l-success" class="success-banner hidden" style="margin-top:10px;">
+          <svg viewBox="0 0 24 24"><polyline points="20,6 9,17 4,12"/></svg>
+          <span id="l-msg">Labels downloaded.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOPs PAGE -->
+    <div class="page" id="page-sop">
+      <h1>Standard Operating Procedures</h1>
+      <p class="page-sub">Reference guide for the Munder Skiles finishing workflow.</p>
+
+      <div class="card">
+        <h2>New service order intake</h2>
+        <div class="sop-step"><div class="sop-num">1</div><div class="sop-body"><strong>Upload the PO PDF on the PO Intake page</strong><p>AI reads and extracts all fields automatically.</p></div></div>
+        <div class="sop-step"><div class="sop-num">2</div><div class="sop-body"><strong>Review extracted fields</strong><p>Verify project name, PO number, color, and container date. Correct anything missed.</p></div></div>
+        <div class="sop-step"><div class="sop-num">3</div><div class="sop-body"><strong>Check custom color flag</strong><p>If flagged, trigger a sample work order in ERP before saving or scheduling.</p></div></div>
+        <div class="sop-step"><div class="sop-num">4</div><div class="sop-body"><strong>Save to Notion</strong><p>Pushes a new record to Service Orders with status Received and all date milestones calculated.</p></div></div>
+        <div class="sop-step"><div class="sop-num">5</div><div class="sop-body"><strong>Download both labels</strong><p>Catalyst and Paint Base labels auto-fill from the PO data. Open in Word and print on Brother 4"×2" stock.</p></div></div>
+      </div>
+
+      <div class="card">
+        <h2>Custom color sample workflow</h2>
+        <div class="sop-step"><div class="sop-num">1</div><div class="sop-body"><strong>Flag triggers automatically</strong><p>If the PO mentions a custom or non-standard color, the warning appears on intake.</p></div></div>
+        <div class="sop-step"><div class="sop-num">2</div><div class="sop-body"><strong>Trigger shop work order in ERP</strong><p>Do this before saving to Notion. Order status will auto-set to Work Order Created.</p></div></div>
+        <div class="sop-step"><div class="sop-num">3</div><div class="sop-body"><strong>Send sample to Munder Skiles HQ</strong><p>Update Notion status to Sample Sent.</p></div></div>
+        <div class="sop-step"><div class="sop-num">4</div><div class="sop-body"><strong>Await approval</strong><p>Once HQ approves, update to Sample Approved. Only then schedule into production.</p></div></div>
+      </div>
+
+      <div class="card">
+        <h2>Status definitions</h2>
+        <table style="width:100%;font-size:13px;border-collapse:collapse;">
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:7px 0;font-weight:600;width:170px;">Received</td>
+            <td style="padding:7px 0;color:var(--text2);">PO logged, no action taken yet</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:7px 0;font-weight:600;">Work Order Created</td>
+            <td style="padding:7px 0;color:var(--text2);">Internal WO issued to shop (custom color orders)</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:7px 0;font-weight:600;">Sample Sent</td>
+            <td style="padding:7px 0;color:var(--text2);">Custom color sample shipped to HQ</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:7px 0;font-weight:600;">Sample Approved</td>
+            <td style="padding:7px 0;color:var(--text2);">HQ has signed off on color</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:7px 0;font-weight:600;">Scheduled</td>
+            <td style="padding:7px 0;color:var(--text2);">On the production schedule in ERP</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:7px 0;font-weight:600;">In Production</td>
+            <td style="padding:7px 0;color:var(--text2);">Active on the shop floor</td>
+          </tr>
+          <tr>
+            <td style="padding:7px 0;font-weight:600;">Shipped</td>
+            <td style="padding:7px 0;color:var(--text2);">Completed and returned to Munder Skiles</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- DATE CALCULATOR PAGE -->
+    <div class="page" id="page-dates">
+      <h1>Date Calculator</h1>
+      <p class="page-sub">Enter a container date to calculate all production milestones.</p>
+      <div class="card">
+        <div class="field" style="max-width:220px;margin-bottom:1rem;">
+          <label>Container date</label>
+          <input id="dc-container" type="date" />
+        </div>
+        <div id="dc-results" class="hidden">
+          <div class="dates-mini">
+            <h3>Milestones</h3>
+            <div class="date-row"><span class="label">Container arrives in US</span><span class="val" id="dc-cont">—</span></div>
+            <div class="date-row"><span class="label">Est. arrival at facility (+14 days)</span><span class="val" id="dc-arr">—</span></div>
+            <div class="date-row"><span class="label">Est. completion (+14 days from arrival)</span><span class="val" id="dc-comp">—</span></div>
+          </div>
+          <div class="flag info" style="margin-top:10px;">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>If this is a custom color order, sample approval must happen before the scheduling date — factor in 1–2 weeks for sample turnaround.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+<script>
+const {
+  Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+  AlignmentType, BorderStyle, WidthType, ShadingType, VerticalAlign,
+  LevelFormat, PageOrientation
+} = docx;
+
+const NOTION_DB = '4dc7c54e6ace4e6eac1dc491eede76e6';
+const PAGE_W = 5760, PAGE_H = 3440, MG = 288, CW = PAGE_W - MG * 2;
+const BLK = "000000", WHT = "FFFFFF";
+const th = {style:BorderStyle.SINGLE,size:4,color:BLK};
+const AB = {top:th,bottom:th,left:th,right:th};
+
+const num = { config:[{reference:"b",levels:[{level:0,format:LevelFormat.BULLET,text:"\u2022",alignment:AlignmentType.LEFT,style:{paragraph:{indent:{left:320,hanging:180}}}}]}]};
+const pp = {properties:{page:{size:{width:PAGE_W,height:PAGE_H,orientation:PageOrientation.LANDSCAPE},margin:{top:MG,bottom:MG,left:MG,right:MG}}}};
+
+function tr(t,sz,o={}){return new TextRun({text:t,size:sz*2,font:"Arial",bold:!!o.bold,color:o.color||"000000"});}
+function p(ch,al=AlignmentType.LEFT){return new Paragraph({alignment:al,spacing:{before:0,after:0},children:Array.isArray(ch)?ch:[ch]});}
+function bp(t,sz=15){return new Paragraph({numbering:{reference:"b",level:0},spacing:{before:0,after:0},children:[tr(t,sz)]});}
+function tc(ch,w,o={}){return new TableCell({borders:o.borders||AB,width:{size:w,type:WidthType.DXA},shading:{fill:o.fill||WHT,type:ShadingType.CLEAR},verticalAlign:o.va||VerticalAlign.TOP,columnSpan:o.span||1,margins:{top:50,bottom:50,left:70,right:70},children:ch});}
+
+function addDays(s,n){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+n);return d.toISOString().split("T")[0];}
+function fmtD(s){if(!s)return"";const[y,m,d]=s.split("-");return`${parseInt(m)}/${parseInt(d)}/${y}`;}
+function fmtLong(s){if(!s)return"—";const[y,m,d]=s.split("-");const mo=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];return`${mo[parseInt(m)-1]} ${parseInt(d)}, ${y}`;}
+function slug(s){return(s||"Order").replace(/\s+/g,"_").replace(/[^a-zA-Z0-9_]/g,"");}
+
+function makeCatalyst(d){
+  const L=1600,R=CW-L,c1=2400,c2=1350,c3=CW-c1-c2,lc=Math.floor(CW/2),rc=CW-lc;
+  const rows=[
+    new TableRow({children:[tc([p([tr("MUNDER SKILES",17,{bold:true})])],L,{borders:{...AB},va:VerticalAlign.CENTER}),tc([p([tr("CATALYST",27,{bold:true,color:WHT})],AlignmentType.RIGHT)],R,{fill:BLK,va:VerticalAlign.CENTER})]}),
+    new TableRow({children:[tc([p([tr("Color:  ",19,{bold:true}),tr(d.color||"",19)])],CW,{span:2})]}),
+    new TableRow({children:[tc([p([tr("Project:  ",19,{bold:true}),tr(d.project||"",19)])],CW,{span:2})]}),
+    new TableRow({children:[tc([p([tr("CONTENTS: ",17,{bold:true}),tr("5 mL NCO CATALYST",17)])],c1,{va:VerticalAlign.CENTER}),tc([p([tr("Date Filled",15)]),p([tr(d.dateFilled||"",16)])],c2),tc([p([tr("Use By",15)]),p([tr(d.useBy||"",16)])],c3)]}),
+    new TableRow({children:[tc([p([tr("HAZARDS",17,{bold:true})]),bp("Combustible liquid"),bp("Harmful if inhaled"),bp("Causes skin irritation"),bp("Causes serious eye damage"),bp("May cause allergic skin reaction"),bp("May cause respiratory irritation")],lc),tc([p([tr("HANDLING",17,{bold:true})]),bp("Use in well-ventilated area"),bp("Avoid prolonged skin contact"),bp("Keep from freezing"),p([tr("See SDS for full safety information",13)]),p([tr("REQUIRED PPE",15,{bold:true})]),p([tr("Nitrile gloves, Safety glasses, Suitable protective clothing",14)])],rc)]}),
+    new TableRow({children:[tc([p([tr("DISPOSAL",17,{bold:true})]),p([tr("Do not pour unused material down drains",14)]),p([tr("Dispose of in accordance with local regulations for coatings/chemical waste",14)])],lc),tc([p([tr("FIRST AID MEASURES",15,{bold:true})]),p([tr("Inhalation: ",14,{bold:true}),tr("Remove to fresh air",14)]),p([tr("Eye Contact: ",14,{bold:true}),tr("Rinse thoroughly with plenty of water",14)]),p([tr("Skin Contact: ",14,{bold:true}),tr("Wash with plenty of water",14)]),p([tr("Ingestion: ",14,{bold:true}),tr("Rinse mouth. If swallowed, do not induce vomiting. Call a physician.",14)])],rc)]})
+  ];
+  return new Document({numbering:num,sections:[{...pp,children:[new Table({width:{size:CW,type:WidthType.DXA},columnWidths:[L,R],rows})]}]});
+}
+
+function makePaintBase(d){
+  const L=1600,R=CW-L,c1=2400,c2=1350,c3=CW-c1-c2,lc=Math.floor(CW/2),rc=CW-lc;
+  const rows=[
+    new TableRow({children:[tc([p([tr("MUNDER SKILES",17,{bold:true})])],L,{borders:{...AB},va:VerticalAlign.CENTER}),tc([p([tr("PAINT BASE",25,{bold:true})],AlignmentType.RIGHT)],R,{va:VerticalAlign.CENTER})]}),
+    new TableRow({children:[tc([p([tr("Color:  ",19,{bold:true}),tr(d.color||"",19)])],CW,{span:2})]}),
+    new TableRow({children:[tc([p([tr("Project:  ",19,{bold:true}),tr(d.project||"",19)])],CW,{span:2})]}),
+    new TableRow({children:[tc([p([tr("CONTENTS: ",16,{bold:true}),tr("50mL ENDURO 2K POLYURETHANE",16)])],c1,{va:VerticalAlign.CENTER}),tc([p([tr("Date Filled",15)]),p([tr(d.dateFilled||"",16)])],c2),tc([p([tr("Use By",15)]),p([tr(d.useBy||"",16)])],c3)]}),
+    new TableRow({children:[tc([p([tr("MIXING INSTRUCTIONS",16,{bold:true})]),p([tr("1. Ensure both bottles are at room temperature before mixing.",14)]),p([tr("2. Add the entire catalyst contents into the paint base bottle.",14)]),p([tr("3. Close the paint bottle securely.",14)]),p([tr("4. Mix thoroughly by gently shaking or stirring. Avoid splashing.",14)]),p([tr("5. Allow the mixture to sit for 1-2 minutes before use.",14)]),p([tr("Pot Life: ",14),tr("Use within 4 hours after mixing.",14,{bold:true}),tr(" Do not store mixed materials. It will harden.",14)])],lc),tc([p([tr("HANDLING",16,{bold:true})]),bp("Use in well-ventilated area"),bp("Avoid prolonged skin contact"),bp("Keep from freezing"),p([tr("See SDS for full safety information",13)]),p([tr("REQUIRED PPE",14,{bold:true})]),p([tr("Nitrile gloves, Safety glasses, Suitable protective clothing",14)])],rc)]}),
+    new TableRow({children:[tc([p([tr("FIRST AID MEASURES",15,{bold:true})]),p([tr("Inhalation: ",14,{bold:true}),tr("Remove to fresh air",14)]),p([tr("Eye Contact: ",14,{bold:true}),tr("Rinse thoroughly with plenty of water",14)]),p([tr("Skin Contact: ",14,{bold:true}),tr("Wash with plenty of water",14)]),p([tr("Ingestion: ",14,{bold:true}),tr("Rinse mouth. If swallowed, do not induce vomiting. Call a physician.",14)])],lc),tc([p([tr("DISPOSAL",16,{bold:true})]),p([tr("Do not pour unused material down drains. Dispose of in accordance with local regulations for coatings/chemical waste.",14)])],rc)]})
+  ];
+  return new Document({numbering:num,sections:[{...pp,children:[new Table({width:{size:CW,type:WidthType.DXA},columnWidths:[L,R],rows})]}]});
+}
+
+function dl(buf,name){
+  const blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+function show(id){document.getElementById(id).classList.remove("hidden");}
+function hide(id){document.getElementById(id).classList.add("hidden");}
+function enableBtns(){["btn-notion","btn-cat","btn-pb","btn-both"].forEach(id=>document.getElementById(id).disabled=false);}
+
+function updateDates(cval,prefix){
+  if(!cval){if(prefix==="d-")hide("dates-card");return;}
+  const arr=addDays(cval,14),comp=addDays(arr,14);
+  document.getElementById(prefix+"cont").textContent=fmtLong(cval);
+  document.getElementById(prefix+"arr").textContent=fmtLong(arr);
+  document.getElementById(prefix+"comp").textContent=fmtLong(comp);
+  if(prefix==="d-")show("dates-card");
+  else show("dc-results");
+}
+
+function getIntakeData(){
+  const cv=document.getElementById("f-container").value;
+  const arr=cv?addDays(cv,14):null;
+  const comp=arr?addDays(arr,14):null;
+  return{
+    project:document.getElementById("f-project").value.trim(),
+    poNumber:document.getElementById("f-po").value.trim(),
+    color:document.getElementById("f-color").value.trim(),
+    finish:document.getElementById("f-finish").value.trim(),
+    qty:parseFloat(document.getElementById("f-qty").value)||null,
+    sheen:document.getElementById("f-sheen").value||null,
+    desc:document.getElementById("f-desc").value.trim(),
+    notes:document.getElementById("f-notes").value.trim(),
+    dateFilled:fmtD(document.getElementById("f-filled").value),
+    useBy:comp?fmtD(comp):"",
+    containerDate:cv,
+    arrivalDate:arr,
+    completionDate:comp,
+    slug:slug(document.getElementById("f-project").value)
+  };
+}
+
+async function toBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(",")[1]);
+    r.onerror=rej;
+    r.readAsDataURL(file);
+  });
+}
+
+async function extractPDF(b64){
+  const resp=await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      model:"claude-sonnet-4-6",max_tokens:1000,
+      messages:[{role:"user",content:[
+        {type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},
+        {type:"text",text:`Parse this Munder Skiles PO. Return ONLY valid JSON, no markdown:
+{"projectName":"","poNumber":"","color":"","finishProduct":"","containerDate":"YYYY-MM-DD or empty","quantity":0,"description":"","customColor":false}
+customColor = true if custom/special/non-standard color is mentioned.`}
+      ]}]
+    })
+  });
+  const data=await resp.json();
+  const text=(data.content||[]).find(b=>b.type==="text")?.text||"{}";
+  return JSON.parse(text.replace(/```json|```/g,"").trim());
+}
+
+async function handleFile(file){
+  if(!file||file.type!=="application/pdf"){
+    document.getElementById("err-msg").textContent="Please upload a PDF file.";
+    show("step-err");return;
+  }
+  ["step-read","step-extract","step-done","step-err","form-area","custom-flag","dates-card","notion-success","label-success"].forEach(hide);
+  show("step-read");
+  let b64;
+  try{b64=await toBase64(file);}catch(e){hide("step-read");document.getElementById("err-msg").textContent="Could not read file.";show("step-err");show("form-area");enableBtns();return;}
+  hide("step-read");show("step-extract");
+  let ex={};
+  try{ex=await extractPDF(b64);}catch(e){}
+  hide("step-extract");show("step-done");
+  document.getElementById("f-project").value=ex.projectName||"";
+  document.getElementById("f-po").value=ex.poNumber||"";
+  document.getElementById("f-color").value=ex.color||"";
+  document.getElementById("f-finish").value=ex.finishProduct||"";
+  document.getElementById("f-qty").value=ex.quantity||"";
+  document.getElementById("f-desc").value=ex.description||"";
+  if(ex.containerDate){document.getElementById("f-container").value=ex.containerDate;updateDates(ex.containerDate,"d-");}
+  document.getElementById("f-filled").valueAsDate=new Date();
+  if(ex.customColor)show("custom-flag");
+  show("form-area");enableBtns();
+}
+
+document.getElementById("drop").addEventListener("click",()=>document.getElementById("file-in").click());
+document.getElementById("drop").addEventListener("dragover",e=>{e.preventDefault();document.getElementById("drop").classList.add("over");});
+document.getElementById("drop").addEventListener("dragleave",()=>document.getElementById("drop").classList.remove("over"));
+document.getElementById("drop").addEventListener("drop",e=>{e.preventDefault();document.getElementById("drop").classList.remove("over");handleFile(e.dataTransfer.files[0]);});
+document.getElementById("file-in").addEventListener("change",e=>handleFile(e.target.files[0]));
+document.getElementById("f-container").addEventListener("change",e=>updateDates(e.target.value,"d-"));
+
+document.getElementById("btn-notion").addEventListener("click",async()=>{
+  const btn=document.getElementById("btn-notion");
+  const orig=btn.innerHTML;btn.disabled=true;btn.textContent="Saving...";
+  const d=getIntakeData();
+  const props={"Project Name":d.project||"Untitled","PO Number":d.poNumber,"Status":"Received","Custom Color?":document.getElementById("custom-flag").classList.contains("hidden")?"__NO__":"__YES__","Color Selected":d.color,"Sheen":d.sheen,"Finish Product":d.finish,"Product Description":d.desc,"Notes / Special Requests":d.notes};
+  if(d.qty)props["Quantity"]=d.qty;
+  if(d.containerDate){props["date:Container Date:start"]=d.containerDate;props["date:Container Date:is_datetime"]=0;}
+  if(d.arrivalDate){props["date:Est. Arrival at Facility:start"]=d.arrivalDate;props["date:Est. Arrival at Facility:is_datetime"]=0;}
+  if(d.completionDate){props["date:Est. Completion:start"]=d.completionDate;props["date:Est. Completion:is_datetime"]=0;}
+  try{
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,
+        mcp_servers:[{type:"url",url:"https://mcp.notion.com/mcp",name:"notion-mcp"}],
+        messages:[{role:"user",content:`Create a new page in Notion database ID ${NOTION_DB} with these properties: ${JSON.stringify(props)}. Return only the URL of the created page.`}]})
+    });
+    const data=await resp.json();
+    const text=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join(" ");
+    const url=(text.match(/https:\/\/[^\s"')]+notion[^\s"')]+/i)||[])[0]||"https://notion.so";
+    document.getElementById("notion-link").href=url;
+    show("notion-success");
+  }catch(e){alert("Could not save to Notion. Check your connection.");}
+  btn.disabled=false;btn.innerHTML=orig;
+});
+
+document.getElementById("btn-cat").addEventListener("click",async()=>{
+  const d=getIntakeData();dl(await Packer.toBuffer(makeCatalyst(d)),`${d.slug}_Catalyst_Label.docx`);
+  document.getElementById("label-msg").textContent="Catalyst label downloaded.";show("label-success");
+});
+document.getElementById("btn-pb").addEventListener("click",async()=>{
+  const d=getIntakeData();dl(await Packer.toBuffer(makePaintBase(d)),`${d.slug}_PaintBase_Label.docx`);
+  document.getElementById("label-msg").textContent="Paint Base label downloaded.";show("label-success");
+});
+document.getElementById("btn-both").addEventListener("click",async()=>{
+  const d=getIntakeData();
+  const[cb,pb]=await Promise.all([Packer.toBuffer(makeCatalyst(d)),Packer.toBuffer(makePaintBase(d))]);
+  dl(cb,`${d.slug}_Catalyst_Label.docx`);setTimeout(()=>dl(pb,`${d.slug}_PaintBase_Label.docx`),400);
+  document.getElementById("label-msg").textContent="Both labels downloaded.";show("label-success");
+});
+document.getElementById("btn-reset").addEventListener("click",()=>{
+  ["step-read","step-extract","step-done","step-err","form-area","custom-flag","dates-card","notion-success","label-success"].forEach(hide);
+  ["f-project","f-po","f-color","f-finish","f-qty","f-desc","f-container","f-filled","f-notes"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("f-sheen").value="";
+  document.getElementById("file-in").value="";
+  ["btn-notion","btn-cat","btn-pb","btn-both"].forEach(id=>document.getElementById(id).disabled=true);
+});
+
+document.getElementById("l-filled").valueAsDate=new Date();
+["l-btn-cat","l-btn-pb","l-btn-both"].forEach(id=>{
+  document.getElementById(id).addEventListener("click",async()=>{
+    const d={
+      project:document.getElementById("l-project").value.trim()||"Order",
+      color:document.getElementById("l-color").value.trim(),
+      dateFilled:fmtD(document.getElementById("l-filled").value),
+      useBy:fmtD(document.getElementById("l-useby").value)
+    };
+    const s=slug(d.project);
+    if(id==="l-btn-cat"){dl(await Packer.toBuffer(makeCatalyst(d)),`${s}_Catalyst_Label.docx`);}
+    else if(id==="l-btn-pb"){dl(await Packer.toBuffer(makePaintBase(d)),`${s}_PaintBase_Label.docx`);}
+    else{
+      const[cb,pb]=await Promise.all([Packer.toBuffer(makeCatalyst(d)),Packer.toBuffer(makePaintBase(d))]);
+      dl(cb,`${s}_Catalyst_Label.docx`);setTimeout(()=>dl(pb,`${s}_PaintBase_Label.docx`),400);
+    }
+    document.getElementById("l-msg").textContent="Labels downloaded.";show("l-success");
+  });
+});
+
+document.getElementById("dc-container").addEventListener("change",e=>updateDates(e.target.value,"dc-"));
+
+document.querySelectorAll(".nav-item").forEach(item=>{
+  item.addEventListener("click",()=>{
+    document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+    item.classList.add("active");
+    document.getElementById("page-"+item.dataset.page).classList.add("active");
+  });
+});
+</script>
+</body>
+</html>
